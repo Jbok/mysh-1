@@ -65,6 +65,15 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
 	Is_bg=1;
       }
 
+
+	//Path Resolution
+	char path[5][512]={
+		"/usr/local/bin/",
+		"/bin/",
+		"/usr/bin/",
+		"/usr/sbin/",
+		"/sbin/"};
+
       pid_t pid;
       pid=fork();
 
@@ -77,8 +86,17 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
         if(Is_bg==1){
 	  printf("%d\n",getpid());
 	}
-
-        execv(com->argv[0],com->argv);
+	//Path Resolution
+        if(execv(com->argv[0],com->argv)==-1){
+	    char *origin=com->argv[0];
+	    for(int i=0;i<5;i++){
+	      strcat(path[i],com->argv[0]);
+	      com->argv[0]=path[i];
+	      if(execv(com->argv[0],com->argv)!=-1)break;
+	      else com->argv[0]=origin;
+		
+	  }
+	}
         fprintf(stderr, "%s: command not found\n", com->argv[0]);
 
 	exit(0);//Close Child because of exit overlapping
@@ -87,15 +105,8 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
 
 	//Background Processing
 	if(Is_bg==1){
-	  Is_bg=0;
-	  return 0;
-	} else{ 
-	  if((pid=waitpid(pid,NULL,0))<0){
-		perror("wait");
-		return -1;
-		}
-		sleep(3);
-		return 0; 
+	} else{
+	  waitpid(pid,NULL,0); 
 	}
       }
 
