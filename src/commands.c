@@ -56,25 +56,47 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
     } else {
       
 // NewLine for Process Creation
+     
+
+      int Is_bg=-1; //Is background processing? Yes=1, No=-1 
+      if(!strcmp(com->argv[com->argc-1],"&")){
+	com->argv[com->argc-1]=NULL;
+	(com->argc)--; //delete '&'
+	Is_bg=1;
+      }
+
       pid_t pid;
-      pid = fork();
-      int flag; //Is it execute execv? NO:-1
+      pid=fork();
+
+
       if(pid == -1){
 	fprintf(stderr,"Error about fork occurs\n");
         exit(1); 
       } else if (pid == 0){  //child
-	flag = 1;//Init flag
-	flag = execv(com->argv[0],com->argv);
-  
-        if(flag == -1){
-          fprintf(stderr, "%s: command not found\n", com->argv[0]);
-        }
+        
+        if(Is_bg==1){
+	  printf("%d\n",getpid());
+	}
 
+        execv(com->argv[0],com->argv);
+        fprintf(stderr, "%s: command not found\n", com->argv[0]);
 
-        exit(0);//Close Child because of exit overlapping
+	exit(0);//Close Child because of exit overlapping
 
       } else{	//parent
-        wait(NULL);	
+
+	//Background Processing
+	if(Is_bg==1){
+	  Is_bg=0;
+	  return 0;
+	} else{ 
+	  if((pid=waitpid(pid,NULL,0))<0){
+		perror("wait");
+		return -1;
+		}
+		sleep(3);
+		return 0; 
+	}
       }
 
     }
