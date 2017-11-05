@@ -3,6 +3,10 @@
 #include <string.h>
 #include <assert.h>
 
+#include <pthread.h>	//pid_t
+#include <unistd.h>	//fork
+#include <sys/wait.h>	//wait
+
 #include "commands.h"
 #include "built_in.h"
 
@@ -50,8 +54,25 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
     } else if (strcmp(com->argv[0], "exit") == 0) {
       return 1;
     } else {
+      
+// NewLine for Process Creation
+      pid_t pid;
+      pid = fork();
+      int flag; //Is it execute execv? NO:-1, YES:1
+      if(pid == -1){
+	fprintf(stderr,"Error about fork occurs\n");
+        exit(1); 
+      } else if (pid == 0){  //child
+	flag = 1;//Init flag
+	flag = execv(com->argv[0],com->argv);
+      } else{	//parent
+        wait(NULL);	
+      }
+
+      if(!flag){
       fprintf(stderr, "%s: command not found\n", com->argv[0]);
       return -1;
+      }
     }
   }
 
