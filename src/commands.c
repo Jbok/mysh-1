@@ -10,6 +10,9 @@
 #include "commands.h"
 #include "built_in.h"
 
+//#include "signal_handlers.h" //signal_handling
+
+
 static struct built_in_command built_in_commands[] = {
   { "cd", do_cd, validate_cd_argv },
   { "pwd", do_pwd, validate_pwd_argv },
@@ -57,6 +60,10 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
       
 // NewLine for Process Creation
      
+      
+	//Signal Handling
+//	catch_sigint(SIGINT);
+//    	catch_sigtstp(SIGTSTP);
 
       int Is_bg=-1; //Is background processing? Yes=1, No=-1 
       if(!strcmp(com->argv[com->argc-1],"&")){
