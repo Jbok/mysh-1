@@ -58,21 +58,25 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
 // NewLine for Process Creation
       pid_t pid;
       pid = fork();
-      int flag; //Is it execute execv? NO:-1, YES:1
+      int flag; //Is it execute execv? NO:-1
       if(pid == -1){
 	fprintf(stderr,"Error about fork occurs\n");
         exit(1); 
       } else if (pid == 0){  //child
 	flag = 1;//Init flag
 	flag = execv(com->argv[0],com->argv);
+  
+        if(flag == -1){
+          fprintf(stderr, "%s: command not found\n", com->argv[0]);
+        }
+
+
+        exit(0);//Close Child because of exit overlapping
+
       } else{	//parent
         wait(NULL);	
       }
 
-      if(!flag){
-      fprintf(stderr, "%s: command not found\n", com->argv[0]);
-      return -1;
-      }
     }
   }
 
