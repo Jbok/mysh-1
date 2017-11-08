@@ -6,8 +6,16 @@
 #include "built_in.h"
 #include "utils.h"
 
+//Signal Handling
+#include "signal_handlers.h"
+#include <signal.h>
+
 int main()
 {
+  //Signal Handling
+  catch_sigint(SIGINT);
+  catch_sigtstp(SIGTSTP);  
+
   char buf[8096];
 
   while (1) {
