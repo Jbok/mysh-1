@@ -6,9 +6,12 @@
 #include <pthread.h>	//pid_t
 #include <unistd.h>	//fork
 #include <sys/wait.h>	//wait
+#include <signal.h>
 
 #include "commands.h"
 #include "built_in.h"
+
+
 
 
 static struct built_in_command built_in_commands[] = {
@@ -36,6 +39,7 @@ static int is_built_in_command(const char* command_name)
 int evaluate_command(int n_commands, struct single_command (*commands)[512])
 {
 
+  
 
   if (n_commands > 0) {
     struct single_command* com = (*commands);
@@ -59,7 +63,6 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
     } else {
       
 // NewLine for Process Creation
-     
 
       int Is_bg=-1; //Is background processing? Yes=1, No=-1 
       if(!strcmp(com->argv[com->argc-1],"&")){
@@ -67,8 +70,11 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
 	(com->argc)--; //delete '&'
 	Is_bg=1;
       }
-
-
+      
+        pid_t pid;
+	pid=fork();
+	printf("%d\n",getpid());
+	
 	//Path Resolution
 	char path[5][512]={
 		"/usr/local/bin/",
@@ -77,8 +83,11 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
 		"/usr/sbin/",
 		"/sbin/"};
 
-      pid_t pid;
-      pid=fork();
+
+
+      
+
+      
 
 
       if(pid == -1){
@@ -86,9 +95,7 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
         exit(1); 
       } else if (pid == 0){  //child
         
-        if(Is_bg==1){
-	  printf("%d\n",getpid());
-	}
+	
 	//Path Resolution
         if(execv(com->argv[0],com->argv)==-1){
 	    char *origin=com->argv[0];
@@ -108,8 +115,9 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
 
 	//Background Processing
 	if(Is_bg==1){
+	  
 	} else{ //Not Background
-	  waitpid(pid,0,0); 
+	  printf("?%d\n",waitpid(pid,0,WNOHANG)); 
 	}
       }
     }

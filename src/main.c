@@ -2,23 +2,39 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+#include <signal.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <wait.h> //WNOHANG
+
 #include "commands.h"
 #include "built_in.h"
 #include "utils.h"
-
-//Signal Handling
 #include "signal_handlers.h"
-#include <signal.h>
+
+void bg_handler()
+{
+	pid_t pid;
+	
+	while((pid=waitpid(-1, NULL, WNOHANG))>0){
+		fprintf(stderr,"CHILD EXIT %d\n",pid);
+	}
+}
 
 int main()
 {
   //Signal Handling
-  catch_sigint(SIGINT);
-  catch_sigtstp(SIGTSTP);  
+    catch_sigint(SIGINT);
+    catch_sigtstp(SIGTSTP);  
 
   char buf[8096];
 
+signal(SIGCHLD, bg_handler);
+
   while (1) {
+printf("mysh :");//dd
     fgets(buf, 8096, stdin);
 
     struct single_command commands[512];
