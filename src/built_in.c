@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <wait.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -36,7 +38,7 @@ int do_fg(int argc, char** argv) {
   if (!validate_fg_argv(argc, argv))
     return -1;
 
-  // TODO: Fill this.
+  printf("%d running\n",  waitpid(-1,0,	WNOHANG));
 
   return 0;
 }
