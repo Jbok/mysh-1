@@ -1,47 +1,45 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-
-#include <signal.h>
-#include <unistd.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/wait.h>
+#include <sys/signal.h>
+#include <unistd.h>
 #include <wait.h> //WNOHANG
-
+#include <bits/sigaction.h>
+#include <signal.h>
 #include "commands.h"
 #include "built_in.h"
 #include "utils.h"
 #include "signal_handlers.h"
 
 
+
 void bg_handler(int signo)
 {	
 	pid_t pid;
 	int stat;
-	
-	while( (pid= waitpid(-1, &stat ,WNOHANG))> 0 ) //0: WAIT_MYGRP, -1: WAIT_ANY
-		printf("%d done \n", pid);
-	return;
-
-
+	while( (pid= waitpid(-1, &stat ,WNOHANG))> 0 ){ //0: WAIT_MYGRP, -1: WAIT_ANY	
+		fprintf(stdout,"%d done \n", pid);
+	}
+	signal(SIGCHLD,bg_handler);	
 }
 
 
 int main()
 {
-  
-  char buf[8096];
+	char buf[8096];
+	
+    //	signal(SIGCHLD,bg_handler);		
 	//Signal Handling
-    catch_sigint(SIGINT);
-    catch_sigtstp(SIGTSTP);  
+    	catch_sigint(SIGINT);
+    	catch_sigtstp(SIGTSTP);  
 
-    signal(SIGCHLD,bg_handler);	
 
   while (1) {
    
-    printf("mysh :");//dd
-    
+    fprintf(stdout,"mysh :");//dd
     fgets(buf, 8096, stdin);
 
 

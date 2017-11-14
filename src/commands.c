@@ -54,8 +54,6 @@ static int is_built_in_command(const char* command_name)
 int evaluate_command(int n_commands, struct single_command (*commands)[512])
 {
 
-
-
   if (n_commands > 0) {	
 
     struct single_command* com = (*commands);
@@ -81,7 +79,7 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
 	//Inter-Process Communication and Threading//
 	/////////////////////////////////////////////
 	if( n_commands > 1){
-		
+		ss
 		pthread_t thread;
 		char buf[8096];
 		strcpy(buf,(com+1)->argv[0]);
@@ -93,18 +91,22 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
 		int pipefd[2];
 		int pid;
 		
-		
+		return 0;
 
-	}
+		}
 	
 // NewLine for Process Creation
-	int Is_bg=-1; //Is background processing? Yes=1, No=-1 
+	int Is_bg=-1; //Is background processing? Yes=1, No=-1
+	printf("com->argv[0]:%s\n",com->argv[0]);
+	printf("com->argv[1]:%s\n",com->argv[1]);
+
 	if(!strcmp(com->argv[com->argc-1],"&")){
 		com->argv[com->argc-1]=NULL;
 		(com->argc)--; //delete '&'
 		Is_bg=1;
 	}
-
+	printf("com->argv[0]:%s\n",com->argv[0]);
+	printf("com->argv[1]:%s\n",com->argv[1]);
 
 	//Path Resolution
 	char path[5][512]={
@@ -114,17 +116,14 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
 		"/usr/sbin/",
 		"/sbin/"};     
 
-        pid_t pid;
-	pid=fork();
-
+pid_t pid;
+pid=fork();
 
       if(pid == -1){
 	fprintf(stderr,"Error about fork occurs\n");
-        _exit(EXIT_FAILURE); 
+        exit(0);
       } else if (pid == 0){  //child
-
 	//Path Resolution
-
         if(execv(com->argv[0],com->argv)==-1){
 	    char *origin=com->argv[0];
 	    for(int i=0;i<5;i++){
@@ -136,18 +135,17 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
 	}
 
         fprintf(stderr, "%s: command not found\n", com->argv[0]);
-	_exit(EXIT_FAILURE);
+	exit(-1);
 
       } else{	//parent
 	//Background Processing
-	if(Is_bg==1){
-		
-	} else{ //Not Background
-	  waitpid(pid,NULL,0);
-	  tcsetpgrp(STDIN_FILENO, getpid());
-	  fflush(stdout); 
+		if(Is_bg==1){
+			
+		} else{ //Not Background
+			waitpid(pid,NULL,0);
+			fflush(stdout); 
+		}
 	}
-      }
     }
   }
 
