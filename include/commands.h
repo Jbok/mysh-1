@@ -11,4 +11,6 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512]);
 
 void free_commands(int n_commands, struct single_command (*commands)[512]);
 
+int pid_bg; //background pid for background processing
+
 #endif // MYSH_COMMANDS_H_

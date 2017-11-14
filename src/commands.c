@@ -24,7 +24,13 @@ void* thr_fn(char argv[]){
 	return NULL;	
 }
 
-
+void* bg_handler(void* argv){
+	int stat;
+	while( waitpid(pid_bg, &stat ,WNOHANG) == 0 ){ //0: WAIT_MYGRP, -1: WAIT_ANY	
+	}
+	fprintf(stdout,"%d done \n", pid_bg);
+	pthread_exit(0);	
+}
 
 
 static struct built_in_command built_in_commands[] = {
@@ -54,59 +60,52 @@ static int is_built_in_command(const char* command_name)
 int evaluate_command(int n_commands, struct single_command (*commands)[512])
 {
 
-  if (n_commands > 0) {	
-
-    struct single_command* com = (*commands);
-
-    assert(com->argc != 0);
-
-    int built_in_pos = is_built_in_command(com->argv[0]);
-    if (built_in_pos != -1) {
-      if (built_in_commands[built_in_pos].command_validate(com->argc, com->argv)) {
-        if (built_in_commands[built_in_pos].command_do(com->argc, com->argv) != 0) {
-          fprintf(stderr, "%s: Error occurs\n", com->argv[0]);
+	if (n_commands > 0) {	
+		struct single_command* com = (*commands);
+		assert(com->argc != 0);
+		int built_in_pos = is_built_in_command(com->argv[0]);
+		if (built_in_pos != -1) {
+			if (built_in_commands[built_in_pos].command_validate(com->argc, com->argv)){
+				if (built_in_commands[built_in_pos].command_do(com->argc, com->argv) != 0) {
+					fprintf(stderr, "%s: Error occurs\n", com->argv[0]);
         }
       } else {
-        fprintf(stderr, "%s: Invalid arguments\n", com->argv[0]);
-        return -1;
-  }
-    } else if (strcmp(com->argv[0], "") == 0) {
-      return 0;
-    } else if (strcmp(com->argv[0], "exit") == 0) {
-      return 1;
-    } else {
- 	/////////////////////////////////////////////   
-	//Inter-Process Communication and Threading//
-	/////////////////////////////////////////////
-	if( n_commands > 1){
-		ss
-		pthread_t thread;
-		char buf[8096];
-		strcpy(buf,(com+1)->argv[0]);
-		printf("%s\n",buf);
-		if(pthread_create(&thread, NULL, thr_fn,buf)!=0){//tread error
-			fprintf(stderr,"Error about thread occurs\n");
-		}else{
-		}
-		int pipefd[2];
-		int pid;
+					fprintf(stderr, "%s: Invalid arguments\n", com->argv[0]);
+        	return -1;
+				}
+		}else if (strcmp(com->argv[0], "") == 0) {
+				return 0;
+			} else if (strcmp(com->argv[0], "exit") == 0) {
+				return 1;
+			} else {
+			 	/////////////////////////////////////////////   
+				//Inter-Process Communication and Threading//
+				/////////////////////////////////////////////
+				if( n_commands > 1){
 		
-		return 0;
-
-		}
+					pthread_t thread;
+					char buf[8096];
+					strcpy(buf,(com+1)->argv[0]);
+					printf("%s\n",buf);
+					if(pthread_create(&thread, NULL, thr_fn,buf)!=0){//tread error
+						fprintf(stderr,"Error about thread occurs\n");
+					} else {
+					}
+					int pipefd[2];
+					int pid;
+		
+					return 0;
+				}
 	
 // NewLine for Process Creation
 	int Is_bg=-1; //Is background processing? Yes=1, No=-1
-	printf("com->argv[0]:%s\n",com->argv[0]);
-	printf("com->argv[1]:%s\n",com->argv[1]);
+
 
 	if(!strcmp(com->argv[com->argc-1],"&")){
 		com->argv[com->argc-1]=NULL;
 		(com->argc)--; //delete '&'
 		Is_bg=1;
 	}
-	printf("com->argv[0]:%s\n",com->argv[0]);
-	printf("com->argv[1]:%s\n",com->argv[1]);
 
 	//Path Resolution
 	char path[5][512]={
@@ -120,30 +119,32 @@ pid_t pid;
 pid=fork();
 
       if(pid == -1){
-	fprintf(stderr,"Error about fork occurs\n");
+				fprintf(stderr,"Error about fork occurs\n");
         exit(0);
       } else if (pid == 0){  //child
-	//Path Resolution
+//Path Resolution
         if(execv(com->argv[0],com->argv)==-1){
-	    char *origin=com->argv[0];
-	    for(int i=0;i<5;i++){
-		strcat(path[i],com->argv[0]);
-		com->argv[0]=path[i];
-		if(execv(com->argv[0],com->argv)==-1)
-			com->argv[0]=origin;
-	     }
-	}
+					char *origin=com->argv[0];
+					for(int i=0;i<5;i++){
+						strcat(path[i],com->argv[0]);
+						com->argv[0]=path[i];
+						if(execv(com->argv[0],com->argv)==-1)
+						com->argv[0]=origin;
+				}
+			}
 
-        fprintf(stderr, "%s: command not found\n", com->argv[0]);
-	exit(-1);
+			fprintf(stderr, "%s: command not found\n", com->argv[0]);
+			exit(-1);
 
       } else{	//parent
-	//Background Processing
-		if(Is_bg==1){
-			
-		} else{ //Not Background
-			waitpid(pid,NULL,0);
-			fflush(stdout); 
+				if(Is_bg==1){
+					//Background Processing
+					pid_bg=pid;
+					pthread_t thread_bg;
+					pthread_create(&thread_bg, NULL, bg_handler, NULL);
+				} else{ //Not Background
+					waitpid(pid,NULL,0);
+					fflush(stdout); 
 		}
 	}
     }

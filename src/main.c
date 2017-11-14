@@ -16,22 +16,10 @@
 
 
 
-void bg_handler(int signo)
-{	
-	pid_t pid;
-	int stat;
-	while( (pid= waitpid(-1, &stat ,WNOHANG))> 0 ){ //0: WAIT_MYGRP, -1: WAIT_ANY	
-		fprintf(stdout,"%d done \n", pid);
-	}
-	signal(SIGCHLD,bg_handler);	
-}
-
-
 int main()
 {
 	char buf[8096];
 	
-    //	signal(SIGCHLD,bg_handler);		
 	//Signal Handling
     	catch_sigint(SIGINT);
     	catch_sigtstp(SIGTSTP);  
