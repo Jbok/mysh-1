@@ -28,7 +28,7 @@ void* bg_handler(void* argv){
 	int stat;
 	while( waitpid(pid_bg, &stat ,WNOHANG) == 0 ){ //0: WAIT_MYGRP, -1: WAIT_ANY	
 	}
-	fprintf(stdout,"%d done \n", pid_bg);
+	fprintf(stdout,"%d done %s\n", pid_bg, command_bg);
 	pthread_exit(0);	
 }
 
@@ -141,12 +141,17 @@ pid=fork();
 					//Background Processing
 					pid_bg=pid;
 					pthread_t thread_bg;
+					strcpy(command_bg,"");//initialize
+					for(int i=0;i<com->argc;i++){
+						strcat(command_bg,com->argv[i]);
+						strcat(command_bg," ");
+					}
 					pthread_create(&thread_bg, NULL, bg_handler, NULL);
-				} else{ //Not Background
+				}else{ //Not Background
 					waitpid(pid,NULL,0);
 					fflush(stdout); 
-		}
-	}
+				}
+			}
     }
   }
 

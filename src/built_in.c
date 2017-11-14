@@ -9,6 +9,7 @@
 #include <linux/limits.h>
 
 #include "built_in.h"
+#include "commands.h"
 
 int do_cd(int argc, char** argv) {
   if (!validate_cd_argv(argc, argv))
@@ -38,8 +39,8 @@ int do_fg(int argc, char** argv) {
   if (!validate_fg_argv(argc, argv))
     return -1;
 
-  printf("%d running\n",  waitpid(-1,0,	WNOHANG));
-
+  printf("%d running  %s\n", pid_bg, command_bg);
+	waitpid(pid_bg, 0, 0);
   return 0;
 }
 
