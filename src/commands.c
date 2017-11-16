@@ -10,20 +10,77 @@
 
 //IPC
 #include <sys/socket.h> //socket
+#include <sys/types.h>
 #include <pthread.h> //thread
+#include <netinet/in.h>//sockaddr_in storage size error
+#include <sys/un.h>//sockaddr_un storage size error
+#include <errno.h>
+//UDS using TCP
+#include <arpa/inet.h>
 
 #include "commands.h"
 #include "built_in.h"
 
-//thread function
-void* thr_fn(char argv[]){
-	char *com[2];
-	strcpy(com[0],argv);
-	com[1]=NULL;
-	execv(com[0],com);
-	return NULL;	
-}
+#define FILE_SERVER "/tmp/test_server"
 
+//thread function
+void* thr_fn(void* argv){
+	//bring command
+	struct single_command* com=(struct single_command *)argv;
+	
+	//create server socket
+	if(access("/tmp/test_server", F_OK)==0){
+		unlink("/tmp/test_server");
+	}
+	int server_socket = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (server_socket == -1){
+		fprintf(stderr,"Error about server socket creation\n");
+		exit(1);
+	}
+	//bind server socket , assign to kernel
+	struct sockaddr_un server_addr;
+	memset(&server_addr, 0, sizeof(server_addr));
+	server_addr.sun_family = AF_UNIX;
+	strcpy(server_addr.sun_path, FILE_SERVER);
+
+	//server_addr.sin_port = htons(4000);
+	//server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	if(bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) ==-1 ){
+		fprintf(stdout,"%s\n",strerror(errno));		
+		fprintf(stderr,"Error aboud bind()\n"); 
+		exit(1);
+	}
+	//accept()
+	while(1){
+		if(listen(server_socket,5)==-1){
+    	fprintf(stderr,"Error about listen()\n");
+			continue;
+		} 
+		struct sockaddr_un client_addr;
+		int client_socket;
+		int client_addr_size;
+		client_addr_size=sizeof(client_addr);
+		client_socket=accept(server_socket, (struct sockaddr*)&client_addr,&client_addr_size);
+		if( client_socket == -1){
+			fprintf(stderr,"Error about connection to client server");
+			continue;
+		} 
+		pid_t pid_server;
+		pid_server=fork();
+		if(pid_server==0){
+			dup2(client_socket, 1);
+			//evaluate_command(1, com);
+			execv(com->argv[0],com->argv);
+			//close(client_socket);
+			//close(server_socket);
+			exit(1);
+		}
+		wait(0);
+		//close(client_socket);
+		break;
+	}
+	//pthread_exit(0);
+}
 void* bg_handler(void* argv){
 	int stat;
 	while( waitpid(pid_bg, &stat ,WNOHANG) == 0 ){ //0: WAIT_MYGRP, -1: WAIT_ANY	
@@ -31,7 +88,6 @@ void* bg_handler(void* argv){
 	fprintf(stdout,"%d done %s\n", pid_bg, command_bg);
 	pthread_exit(0);	
 }
-
 
 static struct built_in_command built_in_commands[] = {
   { "cd", do_cd, validate_cd_argv },
@@ -82,19 +138,72 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
 				//Inter-Process Communication and Threading//
 				/////////////////////////////////////////////
 				if( n_commands > 1){
-		
 					pthread_t thread;
-					char buf[8096];
-					strcpy(buf,(com+1)->argv[0]);
-					printf("%s\n",buf);
-					if(pthread_create(&thread, NULL, thr_fn,buf)!=0){//tread error
-						fprintf(stderr,"Error about thread occurs\n");
-					} else {
+					struct single_command* com1= com;
+					struct single_command* com2= com+1;
+ 					/*
+					char buf1[5][8096];
+					char buf2[5][8096];
+					for(int i=0;i<com->argc;i++){
+						strcpy(buf1[i],com->argv[i]);
+						com1->argv=buf1;
+						com1->argc=i+1;
+						printf("n_commands :%d, %s\n",n_commands,buf1[i]);
 					}
-					int pipefd[2];
-					int pid;
-		
-					return 0;
+					for(int i=0;i<(com+1)->argc;i++){
+						strcpy(buf2[i],(com+1)->argv[i]);
+						com2->argv=buf2;
+						com2->argc=i+1;
+	           printf("n_commands :%d, %s\n",n_commands,buf2[i]);
+					}*/
+
+					if(pthread_create(&thread, NULL, thr_fn,com1)!=0){//creat thread
+						fprintf(stderr,"Error about thread occurs\n");
+						exit(1);
+					}
+					/*wait for the thread to exit*/
+
+					
+
+//					pid_t pid_client;
+//					pid_client=fork();
+//					if (pid_client==0){
+						//socket creation
+						int client_socket;
+						client_socket = socket(AF_UNIX, SOCK_STREAM, 0);
+						if(client_socket == -1){
+							fprintf(stderr,"Error about socket creation\n");
+							exit(1);
+						}
+						//server connection
+						struct sockaddr_un server_addr;
+						memset(&server_addr,0,sizeof(server_addr));
+						server_addr.sun_family=AF_UNIX;
+						strcpy(server_addr.sun_path,FILE_SERVER);
+						//server_addr.sin_port=htons(4000);
+						//server_addr.sin_addr.s_addr=inet_addr("127.0.0.1");
+						while( connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1){
+							//fprintf(stdout,"%s\n",strerror(errno));		
+							//perror("error:");
+							//fprintf(stderr,"Error about connecton\n");						
+						} 
+						//pthread_join(thread,NULL);
+							//do command
+						pid_t pid_client;
+						pid_client=fork();
+						if (pid_client==0){
+							int fd_stdout=dup2(client_socket,0);
+							if( fd_stdout == -1 ){
+								fprintf(stderr, "Error about dup\n");
+								exit(1);								
+							} else{
+								execv(com2->argv[0],com2->argv);
+								//close(client_socket);
+								//exit(1);	
+							}
+					//waitpid(pid_client,NULL,0);
+					wait(0);			
+					}
 				}
 	
 // NewLine for Process Creation
