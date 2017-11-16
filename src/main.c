@@ -21,16 +21,14 @@ int main()
 	char buf[8096];
 	
 	//Signal Handling
-//    	catch_sigint(SIGINT);
-//    	catch_sigtstp(SIGTSTP);  
+    	catch_sigint(SIGINT);
+    	catch_sigtstp(SIGTSTP);  
 
 
   while (1) {
    
-    fprintf(stdout,"mysh :");//dd
     fgets(buf, 8096, stdin);
 
-printf("$");
     struct single_command commands[512];
     int n_commands = 0;
     mysh_parse_command(buf, &n_commands, &commands);

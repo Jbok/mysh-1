@@ -67,22 +67,21 @@ void* thr_fn(void* argv){
 		} 
 		pid_t pid_server;
 		pid_server=fork();
+//printf("YES\n");
 		if(pid_server==0){
 			dup2(client_socket, 1);
-			//evaluate_command(1, com);
+			close(client_socket);
 			execv(com->argv[0],com->argv);
-			//close(client_socket);
-			//close(server_socket);
-			exit(1);
 		}
-		wait(0);
-		//close(client_socket);
+		close(client_socket);
+		wait(0);		
 		break;
 	}
-	//pthread_exit(0);
+	pthread_exit(0);
 }
 void* bg_handler(void* argv){
 	int stat;
+	printf("%d\n",pid_bg);
 	while( waitpid(pid_bg, &stat ,WNOHANG) == 0 ){ //0: WAIT_MYGRP, -1: WAIT_ANY	
 	}
 	fprintf(stdout,"%d done %s\n", pid_bg, command_bg);
@@ -192,20 +191,20 @@ int evaluate_command(int n_commands, struct single_command (*commands)[512])
 						pid_t pid_client;
 						pid_client=fork();
 						if (pid_client==0){
-							int fd_stdout=dup2(client_socket,0);
+							int fd_stdout=dup2(client_socket,STDIN_FILENO);
 							if( fd_stdout == -1 ){
 								fprintf(stderr, "Error about dup\n");
 								exit(1);								
 							} else{
-								execv(com2->argv[0],com2->argv);
-								//close(client_socket);
-								//exit(1);	
+								dup2(client_socket,0);
+								close(client_socket);
+								execv(com2->argv[0],com2->argv);	
 							}
-					//waitpid(pid_client,NULL,0);
+					close(client_socket);
 					wait(0);			
 					}
 				}
-	
+	else{
 // NewLine for Process Creation
 	int Is_bg=-1; //Is background processing? Yes=1, No=-1
 
@@ -265,6 +264,7 @@ pid=fork();
   }
 
   return 0;
+}
 }
 
 void free_commands(int n_commands, struct single_command (*commands)[512])
